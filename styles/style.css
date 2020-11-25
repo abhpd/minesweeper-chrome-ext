@@ -1,0 +1,31 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+.global-container {
+    padding: 8px;
+}
+
+.menu-bar {
+    padding: 5px;
+    display: flex;
+    justify-content: space-evenly;
+}
+
+#reset-button {
+    width: 50px;
+}
+
+.cell {
+    margin: 0px;
+    padding: 0px;
+    border: 3px solid orangered;
+    height: 30px;
+    width: 30px;
+}
+
+.mine {
+    border: 3px solid black;
+}
