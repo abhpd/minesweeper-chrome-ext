@@ -3,12 +3,12 @@
 //Global values
 let row = 13;
 let col = 10;
-let mine_grid = [];
 
 function resetHandler() {
+    chrome.storage.sync.set({ timer: 0 });
+    chrome.storage.sync.set({ mine_grid: [] });
     let old_table = document.querySelector(".land-grid");
     old_table.remove();
-    mine_grid = [];
 
     let parent_grid = document.getElementById("parent-grid");
     let new_table = document.createElement("TABLE");
@@ -35,9 +35,27 @@ function generateGrid(table_class) {
             let element = document.createElement("div");
             element.classList.add("cell");
 
-            if (mine_grid.find((ele) => ele[0] === i && ele[1] === j)) {
-                element.classList.add("mine");
-            }
+            chrome.storage.sync.get("mine_grid", function (result) {
+                if (result.mine_grid) {
+                    if (
+                        result.mine_grid.find(
+                            (ele) => ele[0] === i && ele[1] === j
+                        )
+                    ) {
+                        element.classList.add("mine");
+                    } else {
+                        const mineCount = surroundMineCounter(
+                            [i, j],
+                            result.mine_grid
+                        );
+                        if (mineCount > 0) {
+                            let count_text = document.createElement("H1");
+                            count_text.innerHTML = mineCount;
+                            element.appendChild(count_text);
+                        }
+                    }
+                }
+            });
 
             table_data.appendChild(element);
 
@@ -49,6 +67,8 @@ function generateGrid(table_class) {
 
 function mineLayer() {
     let mine_count = 30;
+    let mine_grid = [];
+
     while (mine_count) {
         rand_row = Math.floor(Math.random() * row);
         rand_col = Math.floor(Math.random() * col);
@@ -62,6 +82,54 @@ function mineLayer() {
             mine_count--;
         }
     }
+
+    chrome.storage.sync.set({ mine_grid: mine_grid });
+}
+
+function surroundMineCounter(pos, mine_grid) {
+    let total = 0;
+
+    total = mine_grid.find(
+        (ele) => ele[0] === pos[0] - 1 && ele[1] === pos[1] - 1
+    ) //top-left
+        ? total + 1
+        : total;
+
+    total = mine_grid.find((ele) => ele[0] === pos[0] - 1 && ele[1] === pos[1]) //top
+        ? total + 1
+        : total;
+
+    total = mine_grid.find(
+        (ele) => ele[0] === pos[0] - 1 && ele[1] === pos[1] + 1
+    ) //top-right
+        ? total + 1
+        : total;
+
+    total = mine_grid.find((ele) => ele[0] === pos[0] && ele[1] === pos[1] - 1) //left
+        ? total + 1
+        : total;
+
+    total = mine_grid.find((ele) => ele[0] === pos[0] && ele[1] === pos[1] + 1) //right
+        ? total + 1
+        : total;
+
+    total = mine_grid.find(
+        (ele) => ele[0] === pos[0] + 1 && ele[1] === pos[1] - 1
+    ) //bottom-left
+        ? total + 1
+        : total;
+
+    total = mine_grid.find((ele) => ele[0] === pos[0] + 1 && ele[1] === pos[1]) //bottom
+        ? total + 1
+        : total;
+
+    total = mine_grid.find(
+        (ele) => ele[0] === pos[0] + 1 && ele[1] === pos[1] + 1
+    ) //bottom-right
+        ? total + 1
+        : total;
+
+    return total;
 }
 
 function setTimer(value) {
@@ -69,23 +137,20 @@ function setTimer(value) {
 }
 
 function main() {
-    mineLayer();
     generateGrid(".land-grid");
 }
 
-const isPlaying = true;
-
 //Timer
 
-chrome.storage.local.get("timer", function (result) {
+chrome.storage.sync.get("timer", function (result) {
     setTimer(Number(result.timer));
-    chrome.storage.local.set({ timer: Number(result.timer) + 1 });
+    chrome.storage.sync.set({ timer: Number(result.timer) + 1 });
 });
 
 setInterval(() => {
-    chrome.storage.local.get("timer", function (result) {
+    chrome.storage.sync.get("timer", function (result) {
         setTimer(Number(result.timer));
-        chrome.storage.local.set({ timer: Number(result.timer) + 1 });
+        chrome.storage.sync.set({ timer: Number(result.timer) + 1 });
     });
 }, 1000);
 
