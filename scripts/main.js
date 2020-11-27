@@ -21,11 +21,11 @@ function refreshCurtain() {
     let old_land_curtain = document.querySelector(".land-curtain");
     old_land_curtain.remove();
 
-    let land_curtain_parent = document.getElementById("parent-grid");
+    let parent_grid = document.getElementById("parent-grid");
 
     let new_land_curtain = document.createElement("TABLE");
     new_land_curtain.classList.add("land-curtain");
-    land_curtain_parent.appendChild(new_land_curtain);
+    parent_grid.appendChild(new_land_curtain);
 
     generateCurtain(".land-curtain");
 }
@@ -68,10 +68,8 @@ function cellListener() {
                     });
                 }
             });
+            refreshCurtain();
         });
-    });
-    chrome.storage.local.get("clicked_grid", (result) => {
-        console.table(result.clicked_grid);
     });
 }
 
