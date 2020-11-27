@@ -4,25 +4,76 @@
 let row = 13;
 let col = 10;
 
-function resetHandler() {
-    chrome.storage.sync.set({ timer: 0 });
-    chrome.storage.sync.set({ mine_grid: [] });
-    let old_table = document.querySelector(".land-grid");
-    old_table.remove();
+function refreshGrid() {
+    let old_land_grid = document.querySelector(".land-grid");
+    old_land_grid.remove();
 
     let parent_grid = document.getElementById("parent-grid");
-    let new_table = document.createElement("TABLE");
-    new_table.classList.add("land-grid");
-    parent_grid.appendChild(new_table);
+
+    let new_land_grid = document.createElement("TABLE");
+    new_land_grid.classList.add("land-grid");
+    parent_grid.appendChild(new_land_grid);
+
+    generateGrid(".land-grid");
+}
+
+function refreshCurtain() {
+    let old_land_curtain = document.querySelector(".land-curtain");
+    old_land_curtain.remove();
+
+    let land_curtain_parent = document.getElementById("parent-grid");
+
+    let new_land_curtain = document.createElement("TABLE");
+    new_land_curtain.classList.add("land-curtain");
+    land_curtain_parent.appendChild(new_land_curtain);
+
+    generateCurtain(".land-curtain");
+}
+
+function resetHandler() {
+    chrome.storage.local.set({ timer: 0 });
+    chrome.storage.local.set({ mine_grid: [] });
+    chrome.storage.local.set({ clicked_grid: [] });
 
     mineLayer();
-    generateGrid(".land-grid");
+    refreshGrid();
+    refreshCurtain();
 }
 
 //Event listners
 document.getElementById("reset-button").addEventListener("click", () => {
     resetHandler();
 });
+
+function cellListener() {
+    //Event Listner for the cells
+    document.querySelectorAll(".curtain-cell").forEach((element) => {
+        element.addEventListener("click", (event) => {
+            console.log(
+                `${event.target.getAttribute(
+                    "data-row"
+                )},${event.target.getAttribute("data-col")}`
+            );
+            const row = Number(event.target.getAttribute("data-row"));
+            const col = Number(event.target.getAttribute("data-col"));
+
+            chrome.storage.local.get("clicked_grid", (result) => {
+                if (
+                    !result.clicked_grid.find(
+                        (ele) => ele[0] === row && ele[1] === col
+                    )
+                ) {
+                    chrome.storage.local.set({
+                        clicked_grid: [...result.clicked_grid, [row, col]],
+                    });
+                }
+            });
+        });
+    });
+    chrome.storage.local.get("clicked_grid", (result) => {
+        console.table(result.clicked_grid);
+    });
+}
 
 function generateGrid(table_class) {
     let table = document.querySelector(table_class);
@@ -34,8 +85,10 @@ function generateGrid(table_class) {
 
             let element = document.createElement("div");
             element.classList.add("cell");
+            element.setAttribute("data-row", `${i}`);
+            element.setAttribute("data-col", `${j}`);
 
-            chrome.storage.sync.get("mine_grid", function (result) {
+            chrome.storage.local.get("mine_grid", function (result) {
                 if (result.mine_grid) {
                     if (
                         result.mine_grid.find(
@@ -50,6 +103,8 @@ function generateGrid(table_class) {
                         );
                         if (mineCount > 0) {
                             let count_text = document.createElement("H1");
+                            count_text.setAttribute("data-row", `${i}`);
+                            count_text.setAttribute("data-col", `${j}`);
                             count_text.innerHTML = mineCount;
                             element.appendChild(count_text);
                         }
@@ -63,6 +118,38 @@ function generateGrid(table_class) {
         }
         table.appendChild(table_row);
     }
+}
+
+function generateCurtain(table_class) {
+    let table = document.querySelector(table_class);
+
+    for (let i = 0; i < row; i++) {
+        let table_row = document.createElement("TR");
+        for (let j = 0; j < col; j++) {
+            let table_data = document.createElement("TD");
+
+            let element = document.createElement("div");
+            element.classList.add("curtain-cell");
+            element.setAttribute("data-row", `${i}`);
+            element.setAttribute("data-col", `${j}`);
+
+            chrome.storage.local.get("clicked_grid", (result) => {
+                if (
+                    result.clicked_grid.find(
+                        (ele) => ele[0] === i && ele[1] === j
+                    )
+                ) {
+                    element.classList.add("transparent");
+                }
+            });
+
+            table_data.appendChild(element);
+
+            table_row.appendChild(table_data);
+        }
+        table.appendChild(table_row);
+    }
+    cellListener();
 }
 
 function mineLayer() {
@@ -83,7 +170,7 @@ function mineLayer() {
         }
     }
 
-    chrome.storage.sync.set({ mine_grid: mine_grid });
+    chrome.storage.local.set({ mine_grid: mine_grid });
 }
 
 function surroundMineCounter(pos, mine_grid) {
@@ -138,19 +225,20 @@ function setTimer(value) {
 
 function main() {
     generateGrid(".land-grid");
+    generateCurtain(".land-curtain");
 }
 
 //Timer
 
-chrome.storage.sync.get("timer", function (result) {
+chrome.storage.local.get("timer", function (result) {
     setTimer(Number(result.timer));
-    chrome.storage.sync.set({ timer: Number(result.timer) + 1 });
+    chrome.storage.local.set({ timer: Number(result.timer) + 1 });
 });
 
 setInterval(() => {
-    chrome.storage.sync.get("timer", function (result) {
+    chrome.storage.local.get("timer", function (result) {
         setTimer(Number(result.timer));
-        chrome.storage.sync.set({ timer: Number(result.timer) + 1 });
+        chrome.storage.local.set({ timer: Number(result.timer) + 1 });
     });
 }, 1000);
 

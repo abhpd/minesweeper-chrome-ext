@@ -19,6 +19,16 @@
     width: 50px;
 }
 
+#parent-grid {
+    position: relative;
+    width: 320px;
+}
+
+.land-grid {
+    position: absolute;
+    padding-bottom: 8px;
+}
+
 .cell {
     margin: 0px;
     padding: 0px;
@@ -33,11 +43,6 @@
     align-items: center;
 }
 
-.cell:hover {
-    transform: scale(1.1);
-    transition: ease-in-out 0.1s;
-}
-
 .mine {
     border: 3px solid maroon;
     background-color: white;
@@ -46,4 +51,35 @@
 .mine {
     background-image: url("./../resources/images/mine.png");
     background-size: contain;
+}
+
+.land-curtain {
+    position: absolute;
+    padding-bottom: 8px;
+}
+
+.curtain-cell {
+    margin: 0px;
+    padding: 0px;
+    border: 3px solid grey;
+    height: 30px;
+    width: 30px;
+
+    background-color: darkgrey;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.curtain-cell:hover {
+    transform: scale(1.1);
+    transition: ease-in-out 0.1s;
+}
+.curtain-cell:active {
+    transform: scale(0.9);
+}
+
+.transparent {
+    filter: opacity(0);
 }
