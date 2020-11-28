@@ -1,8 +1,18 @@
 //Max popup size = (h,w) = (600px, 800px)
 
+//delayer
+function delay(delayInms) {
+    return new Promise((resolve) => {
+        setTimeout(() => {
+            resolve(1);
+        }, delayInms);
+    });
+}
+
 //Global values
 let row = 13;
 let col = 10;
+const default_mine_count = 15;
 
 function refreshGrid() {
     let old_land_grid = document.querySelector(".land-grid");
@@ -19,7 +29,9 @@ function refreshGrid() {
 
 function refreshCurtain() {
     let old_land_curtain = document.querySelector(".land-curtain");
-    old_land_curtain.remove();
+    if (old_land_curtain) {
+        old_land_curtain.remove();
+    }
 
     let parent_grid = document.getElementById("parent-grid");
 
@@ -31,31 +43,61 @@ function refreshCurtain() {
 }
 
 function resetHandler() {
+    chrome.storage.local.set({ gameRunning: true });
+    chrome.storage.local.set({ score: 0 });
+    chrome.storage.local.get("score", (result) => {
+        setScore(result.score);
+    });
+
     chrome.storage.local.set({ timer: 0 });
     chrome.storage.local.set({ mine_grid: [] });
     chrome.storage.local.set({ clicked_grid: [] });
+    chrome.storage.local.set({ flag_grid: [] });
 
     mineLayer();
     refreshGrid();
     refreshCurtain();
 }
 
+async function gameEndAndReveal() {
+    setButtonEmoji("😭");
+    chrome.storage.local.set({ gameRunning: false });
+    let old_land_curtain = document.querySelector(".land-curtain");
+    old_land_curtain.remove();
+}
+
+function setButtonEmoji(emoji) {
+    document.getElementById("emoji").innerHTML = emoji;
+}
+
 //Event listners
 document.getElementById("reset-button").addEventListener("click", () => {
+    setButtonEmoji("😄");
     resetHandler();
 });
 
 function cellListener() {
     //Event Listner for the cells
     document.querySelectorAll(".curtain-cell").forEach((element) => {
-        element.addEventListener("click", (event) => {
-            console.log(
-                `${event.target.getAttribute(
-                    "data-row"
-                )},${event.target.getAttribute("data-col")}`
-            );
+        element.addEventListener("click", async (event) => {
+            console.log(event.which);
+            if (event.which === 3) {
+                return;
+            }
             const row = Number(event.target.getAttribute("data-row"));
             const col = Number(event.target.getAttribute("data-col"));
+
+            let noRefresh = false;
+
+            chrome.storage.local.get("mine_grid", (result) => {
+                if (
+                    result.mine_grid.find(
+                        (ele) => ele[0] === row && ele[1] === col
+                    )
+                ) {
+                    gameEndAndReveal();
+                }
+            });
 
             chrome.storage.local.get("clicked_grid", (result) => {
                 if (
@@ -63,11 +105,77 @@ function cellListener() {
                         (ele) => ele[0] === row && ele[1] === col
                     )
                 ) {
-                    chrome.storage.local.set({
-                        clicked_grid: [...result.clicked_grid, [row, col]],
+                    chrome.storage.local.get("flag_grid", (flag_result) => {
+                        if (
+                            !flag_result.flag_grid.find(
+                                (ele) => ele[0] === row && ele[1] === col
+                            )
+                        ) {
+                            const new_clicked_grid_array = [
+                                ...result.clicked_grid,
+                                [row, col],
+                            ];
+                            chrome.storage.local.set({
+                                clicked_grid: new_clicked_grid_array,
+                            });
+                            chrome.storage.local.set({
+                                score: new_clicked_grid_array.length,
+                            });
+                        }
                     });
                 }
             });
+            await delay(0);
+
+            chrome.storage.local.get("gameRunning", (result) => {
+                if (result.gameRunning) {
+                    refreshCurtain();
+                }
+            });
+
+            chrome.storage.local.get("score", (result) => {
+                setScore(result.score);
+            });
+        });
+
+        element.addEventListener("contextmenu", async (event) => {
+            event.preventDefault();
+
+            const row = Number(event.target.getAttribute("data-row"));
+            const col = Number(event.target.getAttribute("data-col"));
+
+            chrome.storage.local.get("flag_grid", (result) => {
+                if (
+                    result.flag_grid.find(
+                        (ele) => ele[0] === row && ele[1] === col
+                    )
+                ) {
+                    let new_flag_grid_array = result.flag_grid;
+                    console.table(new_flag_grid_array[1]);
+
+                    for (var i = 0; i < new_flag_grid_array.length; i++) {
+                        if (
+                            JSON.stringify(new_flag_grid_array[i]) ===
+                            JSON.stringify([row, col])
+                        ) {
+                            new_flag_grid_array.splice(i, 1);
+                        }
+                    }
+
+                    chrome.storage.local.set({
+                        flag_grid: new_flag_grid_array,
+                    });
+                } else {
+                    const new_flag_grid_array = [
+                        ...result.flag_grid,
+                        [row, col],
+                    ];
+                    chrome.storage.local.set({
+                        flag_grid: new_flag_grid_array,
+                    });
+                }
+            });
+            await delay(0);
             refreshCurtain();
         });
     });
@@ -140,6 +248,13 @@ function generateCurtain(table_class) {
                     element.classList.add("transparent");
                 }
             });
+            chrome.storage.local.get("flag_grid", (result) => {
+                if (
+                    result.flag_grid.find((ele) => ele[0] === i && ele[1] === j)
+                ) {
+                    element.classList.add("flag");
+                }
+            });
 
             table_data.appendChild(element);
 
@@ -151,7 +266,7 @@ function generateCurtain(table_class) {
 }
 
 function mineLayer() {
-    let mine_count = 30;
+    let mine_count = default_mine_count;
     let mine_grid = [];
 
     while (mine_count) {
@@ -218,12 +333,29 @@ function surroundMineCounter(pos, mine_grid) {
 }
 
 function setTimer(value) {
-    document.querySelector(".timer-text").innerHTML = value;
+    chrome.storage.local.get("gameRunning", (result) => {
+        if (result.gameRunning) {
+            document.querySelector(".timer-text").innerHTML = value;
+        }
+    });
 }
+
+function setScore(value) {
+    document.querySelector(".score-text").innerHTML = value;
+}
+chrome.storage.local.get("score", function (result) {
+    setScore(Number(result.score));
+});
 
 function main() {
     generateGrid(".land-grid");
     generateCurtain(".land-curtain");
+
+    chrome.storage.local.get("gameRunning", (result) => {
+        if (!result.gameRunning) {
+            gameEndAndReveal();
+        }
+    });
 }
 
 //Timer

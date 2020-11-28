@@ -74,12 +74,13 @@
 
 .curtain-cell:hover {
     transform: scale(1.1);
-    transition: ease-in-out 0.1s;
-}
-.curtain-cell:active {
-    transform: scale(0.9);
 }
 
 .transparent {
     filter: opacity(0);
+}
+
+.flag {
+    background: url("./../resources/images/flag.png");
+    background-size: contain;
 }
