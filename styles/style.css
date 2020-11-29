@@ -24,6 +24,48 @@
     width: 320px;
 }
 
+#settings-button {
+    position: absolute;
+    transition: 0.1s ease-in-out;
+}
+
+#settings-button:hover {
+    transform: scale(1.3);
+}
+
+#settings-button:active {
+    filter: contrast(0);
+}
+.hide-block-css {
+    display: none;
+}
+#change-defaults form {
+    padding: 20px;
+    background-color: white;
+    position: fixed;
+
+    border-radius: 8px;
+    border: 2px solid grey;
+}
+
+#change-defaults form * {
+    margin: 5px;
+}
+#change-defaults p {
+    margin: 0;
+}
+
+#change-defaults-submit {
+    background-color: rgb(226, 226, 226);
+    padding: 5px;
+    border: 1px solid black;
+    border-radius: 2px;
+}
+#change-defaults-submit:active {
+    background-color: grey;
+    border: 1px solid grey;
+}
+
 .land-grid {
     position: absolute;
     padding-bottom: 8px;

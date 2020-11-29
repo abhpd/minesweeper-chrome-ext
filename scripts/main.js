@@ -10,9 +10,22 @@ function delay(delayInms) {
 }
 
 //Global values
-let row = 13;
-let col = 10;
-const default_mine_count = 15;
+const row = 13;
+const col = 10;
+let default_mine_count = 15;
+let autoMiner = true;
+
+chrome.storage.local.get("mineCount", (result) => {
+    if (result.mineCount) {
+        default_mine_count = result.mineCount;
+    }
+});
+
+chrome.storage.local.get("autoMiner", (result) => {
+    if (result.autoMiner) {
+        autoMiner = result.autoMiner;
+    }
+});
 
 function refreshGrid() {
     let old_land_grid = document.querySelector(".land-grid");
@@ -43,6 +56,18 @@ function refreshCurtain() {
 }
 
 function resetHandler() {
+    chrome.storage.local.get("mineCount", (result) => {
+        if (result.mineCount) {
+            default_mine_count = result.mineCount;
+        }
+    });
+
+    chrome.storage.local.get("autoMiner", (result) => {
+        if (result.autoMiner) {
+            autoMiner = result.autoMiner;
+        }
+    });
+
     chrome.storage.local.set({ gameRunning: true });
     chrome.storage.local.set({ score: 0 });
     chrome.storage.local.get("score", (result) => {
@@ -75,6 +100,57 @@ document.getElementById("reset-button").addEventListener("click", () => {
     setButtonEmoji("😄");
     resetHandler();
 });
+
+document
+    .getElementById("settings-button")
+    .addEventListener("click", (event) => {
+        event.target.innerHTML = event.target.innerHTML === "⨯" ? "⚙" : "⨯";
+
+        chrome.storage.local.get("mineCount", (result) => {
+            document.getElementById("mines-count-input").value =
+                result.mineCount;
+        });
+
+        chrome.storage.local.get("mineCount", (result) => {
+            if (result.mineCount) {
+                document
+                    .getElementById("auto-miner-input")
+                    .setAttribute("checked", "");
+            }
+        });
+
+        const change_defaults = document.getElementById("change-defaults");
+        change_defaults.classList.toggle("hide-block-css");
+    });
+
+document
+    .getElementById("change-defaults-submit")
+    .addEventListener("click", async () => {
+        let newMines = document.getElementById("mines-count-input").value;
+        const newAutoMiner = document.getElementById("auto-miner-input")
+            .checked;
+
+        console.log(newMines);
+        console.log(newAutoMiner);
+
+        newMines = newMines > 100 ? 100 : newMines;
+        newMines = newMines < 5 ? 5 : newMines;
+
+        chrome.storage.local.set({ mineCount: newMines });
+
+        chrome.storage.local.get("mineCount", (result) => {
+            if (result.mineCount) {
+                default_mine_count = result.mineCount;
+            }
+        });
+
+        chrome.storage.local.set({ autoMiner: newAutoMiner });
+
+        await delay(50);
+        resetHandler();
+
+        document.getElementById("settings-button").click();
+    });
 
 function cellListener() {
     //Event Listner for the cells
@@ -267,6 +343,7 @@ function generateCurtain(table_class) {
 
 function mineLayer() {
     let mine_count = default_mine_count;
+
     let mine_grid = [];
 
     while (mine_count) {
