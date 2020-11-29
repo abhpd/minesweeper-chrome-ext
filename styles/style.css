@@ -1,3 +1,4 @@
+@import url("https://fonts.googleapis.com/css2?family=Indie+Flower&display=swap");
 * {
     margin: 0;
     padding: 0;
@@ -125,4 +126,17 @@
 .flag {
     background: url("./../resources/images/flag.png");
     background-size: contain;
+}
+
+#cookie img {
+    width: 300px;
+    height: 300px;
+}
+
+#cookie-quote {
+    padding: 20px;
+    background: url("./../resources/images/O5GLLH0.jpg");
+    background-size: cover;
+    font-family: "Indie Flower", cursive;
+    font-size: 6mm;
 }

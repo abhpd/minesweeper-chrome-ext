@@ -1,5 +1,63 @@
 //Max popup size = (h,w) = (600px, 800px)
 
+//Fortune Quotes
+const cookie_quote_array = [
+    "The fortune you seek is in another cookie.",
+    "A closed mouth gathers no feet.",
+    "A conclusion is simply the place where you got tired of thinking.",
+    "A cynic is only a frustrated optimist.",
+    "A foolish man listens to his heart. A wise man listens to cookies.",
+    "You will die alone and poorly dressed.",
+    "A fanatic is one who can't change his mind, and won't change the subject.",
+    "If you look back, you’ll soon be going that way.",
+    "You will live long enough to open many fortune cookies.",
+    "An alien of some sort will be appearing to you shortly.",
+    "Do not mistake temptation for opportunity.",
+    "Flattery will go far tonight.",
+    "He who laughs at himself never runs out of things to laugh at.",
+    "He who laughs last is laughing at you.",
+    "He who throws dirt is losing ground.",
+    "Some men dream of fortunes, others dream of cookies.",
+    "The greatest danger could be your stupidity.",
+    "We don’t know the future, but here’s a cookie.",
+    "The world may be your oyster, but it doesn't mean you'll get its pearl.",
+    "You will be hungry again in one hour.",
+    "The road to riches is paved with homework.",
+    "You can always find happiness at work on Friday.",
+    "Actions speak louder than fortune cookies.",
+    "Because of your melodic nature, the moonlight never misses an appointment.",
+    "Don’t behave with cold manners.",
+    "Don’t forget you are always on our minds.",
+    "Fortune not found? Abort, Retry, Ignore.",
+    "Help! I am being held prisoner in a fortune cookie factory.",
+    "It’s about time I got out of that cookie.",
+    "Never forget a friend. Especially if he owes you.",
+    "Never wear your best pants when you go to fight for freedom.",
+    "Only listen to the fortune cookie; disregard all other fortune telling units.",
+    "It is a good day to have a good day.",
+    "All fortunes are wrong except this one.",
+    "Someone will invite you to a Karaoke party.",
+    "That wasn’t chicken.",
+    "There is no mistake so great as that of being always right.",
+    "You love Chinese food.",
+    "I am worth a fortune.",
+    "No snowflake feels responsible in an avalanche.",
+    "You will receive a fortune cookie.",
+    "Some fortune cookies contain no fortune.",
+    "Don’t let statistics do a number on you.",
+    "You are not illiterate.",
+    "May you someday be carbon neutral.",
+    "You have rice in your teeth.",
+    "Avoid taking unnecessary gambles. Lucky numbers: 12, 15, 23, 28, 37",
+    "Ask your mom instead of a cookie.",
+    "This cookie contains 117 calories.",
+    "Hard work pays off in the future. Laziness pays off now.",
+    "You think it’s a secret, but they know.",
+    "If a turtle doesn’t have a shell, is it naked or homeless?",
+    "Change is inevitable, except for vending machines.",
+    "Don’t eat the paper.",
+];
+
 //delayer
 function delay(delayInms) {
     return new Promise((resolve) => {
@@ -29,7 +87,9 @@ chrome.storage.local.get("autoMiner", (result) => {
 
 function refreshGrid() {
     let old_land_grid = document.querySelector(".land-grid");
-    old_land_grid.remove();
+    if (old_land_grid) {
+        old_land_grid.remove();
+    }
 
     let parent_grid = document.getElementById("parent-grid");
 
@@ -56,6 +116,12 @@ function refreshCurtain() {
 }
 
 function resetHandler() {
+    //winning popup reset
+    document.getElementById("win-popup").classList.add("hide-block-css");
+    document.getElementById("cookie").classList.remove("hide-block-css");
+    document.getElementById("cookie-quote").classList.add("hide-block-css");
+    //------
+
     chrome.storage.local.get("mineCount", (result) => {
         if (result.mineCount) {
             default_mine_count = result.mineCount;
@@ -91,11 +157,42 @@ async function gameEndAndReveal() {
     old_land_curtain.remove();
 }
 
+async function gameWonAndCookie() {
+    chrome.storage.local.set({ gameRunning: false });
+
+    chrome.storage.local.get("score", (result) => {
+        setScore(result.score + 5 * default_mine_count);
+    });
+
+    if (document.querySelector(".land-grid")) {
+        document.querySelector(".land-grid").remove();
+    }
+    if (document.querySelector(".land-curtain")) {
+        document.querySelector(".land-curtain").remove();
+    }
+
+    document.getElementById("win-popup").classList.remove("hide-block-css");
+
+    let cookie = document.getElementById("cookie");
+    let cookie_quote = document.getElementById("cookie-quote");
+
+    cookie.addEventListener("click", () => {
+        cookie.classList.add("hide-block-css");
+        const random_cookie_quote =
+            cookie_quote_array[
+                Math.floor(Math.random() * cookie_quote_array.length)
+            ];
+        cookie_quote.innerHTML = random_cookie_quote;
+        cookie_quote.classList.remove("hide-block-css");
+    });
+}
+
 function setButtonEmoji(emoji) {
     document.getElementById("emoji").innerHTML = emoji;
 }
 
 //Event listners
+
 document.getElementById("reset-button").addEventListener("click", () => {
     setButtonEmoji("😄");
     resetHandler();
@@ -136,20 +233,14 @@ document
         newMines = newMines > 100 ? 100 : newMines;
         newMines = newMines < 5 ? 5 : newMines;
 
-        chrome.storage.local.set({ mineCount: newMines });
-
-        chrome.storage.local.get("mineCount", (result) => {
-            if (result.mineCount) {
-                default_mine_count = result.mineCount;
-            }
+        chrome.storage.local.set({ mineCount: newMines }, () => {
+            default_mine_count = newMines;
         });
 
-        chrome.storage.local.set({ autoMiner: newAutoMiner });
-
-        await delay(50);
-        resetHandler();
-
-        document.getElementById("settings-button").click();
+        chrome.storage.local.set({ autoMiner: newAutoMiner }, () => {
+            resetHandler();
+            document.getElementById("settings-button").click();
+        });
     });
 
 function cellListener() {
@@ -194,23 +285,70 @@ function cellListener() {
                             chrome.storage.local.set({
                                 clicked_grid: new_clicked_grid_array,
                             });
-                            chrome.storage.local.set({
-                                score: new_clicked_grid_array.length,
-                            });
+                            chrome.storage.local.set(
+                                {
+                                    score: new_clicked_grid_array.length,
+                                },
+                                () => {
+                                    chrome.storage.local.get(
+                                        "gameRunning",
+                                        (result) => {
+                                            if (result.gameRunning) {
+                                                refreshCurtain();
+                                            }
+                                        }
+                                    );
+
+                                    chrome.storage.local.get(
+                                        "score",
+                                        (result) => {
+                                            setScore(result.score);
+                                        }
+                                    );
+
+                                    //winning Condition
+
+                                    chrome.storage.local.get(
+                                        "score",
+                                        (result_score) => {
+                                            const win_check_clicked =
+                                                result_score.score;
+                                            chrome.storage.local.get(
+                                                "mineCount",
+                                                (result_mineCount) => {
+                                                    const win_check_mine_count =
+                                                        result_mineCount.mineCount;
+
+                                                    console.log(
+                                                        `${win_check_mine_count} + ${win_check_clicked}`
+                                                    );
+
+                                                    if (
+                                                        Math.floor(
+                                                            win_check_clicked
+                                                        ) +
+                                                            Math.floor(
+                                                                win_check_mine_count
+                                                            ) ===
+                                                        130
+                                                    ) {
+                                                        console.log(
+                                                            `WIIIIIINNNNNN :${
+                                                                win_check_clicked +
+                                                                win_check_mine_count
+                                                            }`
+                                                        );
+                                                        gameWonAndCookie();
+                                                    }
+                                                }
+                                            );
+                                        }
+                                    );
+                                }
+                            );
                         }
                     });
                 }
-            });
-            await delay(0);
-
-            chrome.storage.local.get("gameRunning", (result) => {
-                if (result.gameRunning) {
-                    refreshCurtain();
-                }
-            });
-
-            chrome.storage.local.get("score", (result) => {
-                setScore(result.score);
             });
         });
 
@@ -238,21 +376,29 @@ function cellListener() {
                         }
                     }
 
-                    chrome.storage.local.set({
-                        flag_grid: new_flag_grid_array,
-                    });
+                    chrome.storage.local.set(
+                        {
+                            flag_grid: new_flag_grid_array,
+                        },
+                        () => {
+                            refreshCurtain();
+                        }
+                    );
                 } else {
                     const new_flag_grid_array = [
                         ...result.flag_grid,
                         [row, col],
                     ];
-                    chrome.storage.local.set({
-                        flag_grid: new_flag_grid_array,
-                    });
+                    chrome.storage.local.set(
+                        {
+                            flag_grid: new_flag_grid_array,
+                        },
+                        () => {
+                            refreshCurtain();
+                        }
+                    );
                 }
             });
-            await delay(0);
-            refreshCurtain();
         });
     });
 }
