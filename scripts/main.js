@@ -1,5 +1,4 @@
 //Max popup size = (h,w) = (600px, 800px)
-
 //Fortune Quotes
 const cookie_quote_array = [
     "The fortune you seek is in another cookie.",
@@ -134,7 +133,7 @@ function resetHandler() {
         }
     });
 
-    chrome.storage.local.set({ gameRunning: true });
+    chrome.storage.local.set({ gameRunning: 1 });
     chrome.storage.local.set({ score: 0 });
     chrome.storage.local.get("score", (result) => {
         setScore(result.score);
@@ -152,13 +151,13 @@ function resetHandler() {
 
 async function gameEndAndReveal() {
     setButtonEmoji("😭");
-    chrome.storage.local.set({ gameRunning: false });
+    chrome.storage.local.set({ gameRunning: 0 });
     let old_land_curtain = document.querySelector(".land-curtain");
     old_land_curtain.remove();
 }
 
 async function gameWonAndCookie() {
-    chrome.storage.local.set({ gameRunning: false });
+    chrome.storage.local.set({ gameRunning: -1 });
 
     chrome.storage.local.get("score", (result) => {
         setScore(result.score + 5 * default_mine_count);
@@ -204,8 +203,9 @@ document
         event.target.innerHTML = event.target.innerHTML === "⨯" ? "⚙" : "⨯";
 
         chrome.storage.local.get("mineCount", (result) => {
-            document.getElementById("mines-count-input").value =
-                result.mineCount;
+            document.getElementById(
+                "mines-count-input"
+            ).value = result.mineCount ? result.mineCount : default_mine_count;
         });
 
         chrome.storage.local.get("mineCount", (result) => {
@@ -293,7 +293,7 @@ function cellListener() {
                                     chrome.storage.local.get(
                                         "gameRunning",
                                         (result) => {
-                                            if (result.gameRunning) {
+                                            if (result.gameRunning !== 0) {
                                                 refreshCurtain();
                                             }
                                         }
@@ -557,7 +557,7 @@ function surroundMineCounter(pos, mine_grid) {
 
 function setTimer(value) {
     chrome.storage.local.get("gameRunning", (result) => {
-        if (result.gameRunning) {
+        if (result.gameRunning !== 0) {
             document.querySelector(".timer-text").innerHTML = value;
         }
     });
@@ -571,12 +571,19 @@ chrome.storage.local.get("score", function (result) {
 });
 
 function main() {
-    generateGrid(".land-grid");
-    generateCurtain(".land-curtain");
+    chrome.storage.local.get("score", (result) => {
+        if (!Object.keys(result).length) {
+            resetHandler();
+        } else {
+            generateGrid(".land-grid");
+            generateCurtain(".land-curtain");
 
-    chrome.storage.local.get("gameRunning", (result) => {
-        if (!result.gameRunning) {
-            gameEndAndReveal();
+            chrome.storage.local.get("gameRunning", (result) => {
+                if (result.gameRunning === -1) {
+                } else if (!(result.gameRunning !== 0)) {
+                    gameEndAndReveal();
+                }
+            });
         }
     });
 }
