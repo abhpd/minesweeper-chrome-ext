@@ -1,4 +1,5 @@
 //Max popup size = (h,w) = (600px, 800px)
+
 //Fortune Quotes
 const cookie_quote_array = [
     "The fortune you seek is in another cookie.",
@@ -124,6 +125,8 @@ function resetHandler() {
     chrome.storage.local.get("mineCount", (result) => {
         if (result.mineCount) {
             default_mine_count = result.mineCount;
+        } else {
+            chrome.storage.local.set({ mineCount: default_mine_count });
         }
     });
 
@@ -290,14 +293,21 @@ function cellListener() {
                                     score: new_clicked_grid_array.length,
                                 },
                                 () => {
-                                    chrome.storage.local.get(
-                                        "gameRunning",
-                                        (result) => {
-                                            if (result.gameRunning !== 0) {
-                                                refreshCurtain();
-                                            }
-                                        }
+                                    var curtain_cells = document.querySelectorAll(
+                                        ".curtain-cell"
                                     );
+
+                                    curtain_cells.forEach((element) => {
+                                        if (
+                                            Number(element.dataset.row) ===
+                                                row &&
+                                            Number(element.dataset.col) === col
+                                        ) {
+                                            element.classList.add(
+                                                "transparent"
+                                            );
+                                        }
+                                    });
 
                                     chrome.storage.local.get(
                                         "score",
@@ -338,7 +348,12 @@ function cellListener() {
                                                                 win_check_mine_count
                                                             }`
                                                         );
-                                                        gameWonAndCookie();
+                                                        chrome.storage.local.set(
+                                                            { gameRunning: -1 },
+                                                            () => {
+                                                                gameWonAndCookie();
+                                                            }
+                                                        );
                                                     }
                                                 }
                                             );
@@ -365,7 +380,6 @@ function cellListener() {
                     )
                 ) {
                     let new_flag_grid_array = result.flag_grid;
-                    console.table(new_flag_grid_array[1]);
 
                     for (var i = 0; i < new_flag_grid_array.length; i++) {
                         if (
@@ -381,7 +395,20 @@ function cellListener() {
                             flag_grid: new_flag_grid_array,
                         },
                         () => {
-                            refreshCurtain();
+                            var curtain_cells = document.querySelectorAll(
+                                ".curtain-cell"
+                            );
+
+                            curtain_cells.forEach((element) => {
+                                if (
+                                    Number(element.dataset.row) === row &&
+                                    Number(element.dataset.col) === col
+                                ) {
+                                    element.classList.toggle("flag");
+                                }
+                            });
+
+                            // refreshCurtain();
                         }
                     );
                 } else {
@@ -394,7 +421,19 @@ function cellListener() {
                             flag_grid: new_flag_grid_array,
                         },
                         () => {
-                            refreshCurtain();
+                            var curtain_cells = document.querySelectorAll(
+                                ".curtain-cell"
+                            );
+
+                            curtain_cells.forEach((element) => {
+                                if (
+                                    Number(element.dataset.row) === row &&
+                                    Number(element.dataset.col) === col
+                                ) {
+                                    element.classList.toggle("flag");
+                                }
+                            });
+                            // refreshCurtain();
                         }
                     );
                 }
@@ -557,7 +596,7 @@ function surroundMineCounter(pos, mine_grid) {
 
 function setTimer(value) {
     chrome.storage.local.get("gameRunning", (result) => {
-        if (result.gameRunning !== 0) {
+        if (result.gameRunning === 1) {
             document.querySelector(".timer-text").innerHTML = value;
         }
     });
